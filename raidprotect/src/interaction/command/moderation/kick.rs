@@ -8,7 +8,10 @@
 //! sent in the guild's logs channel. The kicked user receives a pm with the
 //! reason of the kick.
 
-use anyhow::Context;
+use super::utils::{
+    check_command_permissions, check_user_permissions, get_modal_requirements, get_permissions,
+    init_command,
+};
 use raidprotect_model::{cache::model::interaction::PendingSanction, mongodb::modlog::ModlogType};
 use twilight_interactions::command::{CommandModel, CreateCommand, ResolvedUser};
 use twilight_model::{
@@ -24,11 +27,7 @@ use twilight_model::{
 use crate::{
     cluster::ClusterState,
     desc_localizations, impl_command_handle,
-    interaction::{
-        embed,
-        response::InteractionResponse,
-        util::{CustomId, InteractionExt},
-    },
+    interaction::{embed, response::InteractionResponse, util::CustomId},
     translations::Lang,
     util::TextProcessExt,
 };
@@ -65,50 +64,39 @@ impl KickCommand {
         interaction: Interaction,
         state: &ClusterState,
     ) -> Result<InteractionResponse, anyhow::Error> {
-        let guild = interaction.guild()?;
-        let author_id = interaction.author_id().context("missing author_id")?;
-
+        let (guild_id, author_id, lang) = init_command(&interaction).await?;
         let user = self.user.resolved;
-        let lang = interaction.locale()?;
         let member = match self.user.member {
             Some(member) => member,
             None => return Ok(embed::kick::not_member(user.name, lang)),
         };
-
         // Fetch the author and the bot permissions.
-        let permissions = state.redis().permissions(guild.id).await?;
-        let author_permissions = permissions.member(author_id, &member.roles).await?;
-        let member_permissions = permissions.member(user.id, &member.roles).await?;
-        let bot_permissions = permissions.current_member().await?;
+        let (author_permissions, member_permissions, bot_permissions) =
+            get_permissions(state, guild_id, author_id, member, &user).await?;
 
         // Check if the author and the bot have required permissions.
-        if member_permissions.is_owner() {
-            return Ok(embed::kick::member_owner(lang));
-        }
-
-        if !bot_permissions.guild().contains(Permissions::KICK_MEMBERS) {
-            return Ok(embed::kick::bot_missing_permission(lang));
+        if let Some(value) = check_user_permissions(
+            &member_permissions,
+            lang,
+            &bot_permissions,
+            Permissions::KICK_MEMBERS,
+        ) {
+            return value;
         }
 
         // Check if the role hierarchy allow the author and the bot to perform
         // the kick.
-        let member_highest_role = member_permissions.highest_role();
-
-        if member_highest_role >= author_permissions.highest_role() {
-            return Ok(embed::kick::user_hierarchy(lang));
-        }
-
-        if member_highest_role >= bot_permissions.highest_role() {
-            return Ok(embed::kick::bot_hierarchy(lang));
+        if let Some(value) = check_command_permissions(
+            member_permissions,
+            author_permissions,
+            lang,
+            bot_permissions,
+        ) {
+            return value;
         }
 
         // Send reason modal.
-        let enforce_reason = state
-            .mongodb()
-            .get_guild_or_create(guild.id)
-            .await?
-            .moderation
-            .enforce_reason;
+        let enforce_reason = get_modal_requirements(state, guild_id).await?;
 
         match self.reason {
             Some(_reason) => Ok(InteractionResponse::EphemeralDeferredMessage),

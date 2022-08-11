@@ -18,5 +18,6 @@
 //! the bot database.
 
 mod kick;
+mod utils;
 
 pub use kick::KickCommand;
