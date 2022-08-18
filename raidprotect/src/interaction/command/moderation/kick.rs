@@ -8,10 +8,11 @@
 //! sent in the guild's logs channel. The kicked user receives a pm with the
 //! reason of the kick.
 
-use super::utils::{
-    check_command_permissions, check_user_permissions, get_modal_requirements, get_permissions,
+use super::util::{
+    check_command_permissions, check_user_permissions, reason_enforced, get_permissions,
     init_command,
 };
+
 use raidprotect_model::{cache::model::interaction::PendingSanction, mongodb::modlog::ModlogType};
 use twilight_interactions::command::{CommandModel, CreateCommand, ResolvedUser};
 use twilight_model::{
@@ -96,7 +97,7 @@ impl KickCommand {
         }
 
         // Send reason modal.
-        let enforce_reason = get_modal_requirements(state, guild_id).await?;
+        let enforce_reason = reason_enforced(state, guild_id).await?;
 
         match self.reason {
             Some(_reason) => Ok(InteractionResponse::EphemeralDeferredMessage),

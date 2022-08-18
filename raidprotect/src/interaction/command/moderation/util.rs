@@ -96,9 +96,9 @@ pub fn _message_target() {}
 pub fn _message_user() {}
 
 /**
-Get modal requirements from MongoDB for this Guild.
+Get enforce_reason value from MongoDB for this Guild.
 */
-pub async fn get_modal_requirements(
+pub async fn reason_enforced(
     state: &ClusterState,
     guild_id: Id<twilight_model::id::marker::GuildMarker>,
 ) -> Result<bool, Error> {
