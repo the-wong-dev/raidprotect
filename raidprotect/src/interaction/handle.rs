@@ -1,7 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::bail;
-use rosetta_i18n::Language;
 use tracing::{debug, error, warn};
 use twilight_interactions::command::CreateCommand;
 use twilight_model::{
@@ -16,7 +15,10 @@ use super::{
     command::{
         config::ConfigCommand, help::HelpCommand, moderation::KickCommand, profile::ProfileCommand,
     },
-    component::PostInChat,
+    component::{
+        captcha::{CaptchaDisable, CaptchaEnable},
+        PostInChat,
+    },
     embed,
     response::{InteractionResponder, InteractionResponse},
     util::{CustomId, InteractionExt},
@@ -28,12 +30,12 @@ pub async fn handle_interaction(interaction: Interaction, state: Arc<ClusterStat
     let responder = InteractionResponder::from_interaction(&interaction);
     debug!(id = ?interaction.id, "received {} interaction", interaction.kind.kind());
 
-    let lang = interaction.locale().unwrap_or_else(|_| Lang::fallback());
+    let lang = interaction.locale().unwrap_or(Lang::DEFAULT);
 
     let response = match interaction.kind {
-        InteractionType::ApplicationCommand => handle_command(interaction, &state).await,
-        InteractionType::MessageComponent => handle_component(interaction, &state).await,
-        InteractionType::ModalSubmit => handle_modal(interaction, &state).await,
+        InteractionType::ApplicationCommand => handle_command(interaction, state.clone()).await,
+        InteractionType::MessageComponent => handle_component(interaction, state.clone()).await,
+        InteractionType::ModalSubmit => handle_modal(interaction, state.clone()).await,
         other => {
             warn!("received unexpected {} interaction", other.kind());
 
@@ -56,7 +58,7 @@ pub async fn handle_interaction(interaction: Interaction, state: Arc<ClusterStat
 /// Handle incoming command interaction.
 async fn handle_command(
     interaction: Interaction,
-    state: &ClusterState,
+    state: Arc<ClusterState>,
 ) -> Result<InteractionResponse, anyhow::Error> {
     let name = match &interaction.data {
         Some(InteractionData::ApplicationCommand(data)) => &*data.name,
@@ -64,10 +66,10 @@ async fn handle_command(
     };
 
     match name {
-        "config" => ConfigCommand::handle(interaction, state).await,
-        "help" => HelpCommand::handle(interaction, state).await,
-        "kick" => KickCommand::handle(interaction, state).await,
-        "profile" => ProfileCommand::handle(interaction, state).await,
+        "config" => ConfigCommand::handle(interaction, &state).await,
+        "help" => HelpCommand::handle(interaction, &state).await,
+        "kick" => KickCommand::handle(interaction, &state).await,
+        "profile" => ProfileCommand::handle(interaction, &state).await,
         name => {
             warn!(name = name, "received unknown command");
 
@@ -79,7 +81,7 @@ async fn handle_command(
 /// Handle incoming component interaction
 async fn handle_component(
     interaction: Interaction,
-    state: &ClusterState,
+    state: Arc<ClusterState>,
 ) -> Result<InteractionResponse, anyhow::Error> {
     let custom_id = match &interaction.data {
         Some(InteractionData::MessageComponent(data)) => CustomId::from_str(&*data.custom_id)?,
@@ -87,7 +89,9 @@ async fn handle_component(
     };
 
     match &*custom_id.name {
-        "post-in-chat" => PostInChat::handle(interaction, custom_id, state).await,
+        "post-in-chat" => PostInChat::handle(interaction, custom_id, &state).await,
+        "captcha-enable" => CaptchaEnable::handle(interaction, state).await,
+        "captcha-disable" => CaptchaDisable::handle(interaction, state).await,
         name => {
             warn!(name = name, "received unknown component");
 
@@ -99,7 +103,7 @@ async fn handle_component(
 /// Handle incoming modal interaction
 async fn handle_modal(
     interaction: Interaction,
-    _state: &ClusterState,
+    _state: Arc<ClusterState>,
 ) -> Result<InteractionResponse, anyhow::Error> {
     let custom_id = match &interaction.data {
         Some(InteractionData::ModalSubmit(data)) => CustomId::from_str(&*data.custom_id)?,
