@@ -2,9 +2,12 @@
 //!
 //! This crate contains types used to generate embeds used as bot responses.
 
+pub mod ban;
 pub mod captcha;
 pub mod error;
 pub mod kick;
+pub mod mute;
+pub mod warn;
 
 /// RaidProtect's red color.
 pub const COLOR_RED: u32 = 0xd35f5f;

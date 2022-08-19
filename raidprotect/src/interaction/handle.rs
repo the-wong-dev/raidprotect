@@ -14,7 +14,7 @@ use twilight_model::{
 
 use super::{
     command::{
-        config::ConfigCommand, help::HelpCommand, moderation::KickCommand, profile::ProfileCommand,
+        config::ConfigCommand, help::HelpCommand, moderation::KickCommand, moderation::BanCommand, moderation::MuteCommand, moderation::WarnCommand, profile::ProfileCommand,
     },
     component::PostInChat,
     embed,
@@ -67,6 +67,9 @@ async fn handle_command(
         "config" => ConfigCommand::handle(interaction, state).await,
         "help" => HelpCommand::handle(interaction, state).await,
         "kick" => KickCommand::handle(interaction, state).await,
+        "ban" => BanCommand::handle(interaction, state).await,
+        "mute" => MuteCommand::handle(interaction, state).await,
+        "warn" => WarnCommand::handle(interaction, state).await,
         "profile" => ProfileCommand::handle(interaction, state).await,
         name => {
             warn!(name = name, "received unknown command");
@@ -122,6 +125,9 @@ pub async fn register_commands(state: &ClusterState, application_id: Id<Applicat
         ConfigCommand::create_command().into(),
         HelpCommand::create_command().into(),
         KickCommand::create_command().into(),
+        BanCommand::create_command().into(),
+        MuteCommand::create_command().into(),
+        WarnCommand::create_command().into(),
         ProfileCommand::create_command().into(),
     ];
 

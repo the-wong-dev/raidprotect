@@ -18,6 +18,12 @@
 //! the bot database.
 
 mod kick;
-mod utils;
+mod ban;
+mod mute;
+mod warn;
+mod util;
 
 pub use kick::KickCommand;
+pub use ban::BanCommand;
+pub use mute::MuteCommand;
+pub use warn::WarnCommand;

@@ -1,12 +1,12 @@
-//! Kick command.
+//! Warn command.
 //!
-//! The command allows to kick a member from the server. User can specify a
+//! The command allows to warn a member from the server. User can specify a
 //! reason directly in the command (as an optional parameter), or in the modal
 //! that is shown if it hasn't been set in the command.
 //!
-//! When a user is kicked, the action is logged in the database and a message is
-//! sent in the guild's logs channel. The kicked user receives a pm with the
-//! reason of the kick.
+//! When a user is warned, the action is logged in the database and a message is
+//! sent in the guild's logs channel. The warned user receives a pm with the
+//! reason of the warn.
 
 use super::util::{
     check_command_permissions, check_user_permissions, get_modal_requirements, get_permissions,
@@ -32,29 +32,29 @@ use crate::{
     util::TextProcessExt,
 };
 
-/// Kick command model.
+/// Warn command model.
 ///
 /// See the [`module`][self] documentation for more information.
 #[derive(Debug, Clone, CommandModel, CreateCommand)]
 #[command(
-    name = "kick",
-    desc = "Kicks a user from the server",
-    desc_localizations = "kick_description",
-    default_permissions = "KickCommand::default_permissions",
+    name = "warn",
+    desc = "Warns a user from the server",
+    desc_localizations = "warn_description",
+    default_permissions = "WarnCommand::default_permissions",
     dm_permission = false
 )]
-pub struct KickCommand {
-    /// Member to kick.
+pub struct WarnCommand {
+    /// Member to warn.
     #[command(rename = "member")]
     pub user: ResolvedUser,
-    /// Reason for kick.
+    /// Reason for warn.
     pub reason: Option<String>,
 }
 
-impl_command_handle!(KickCommand);
-desc_localizations!(kick_description);
+impl_command_handle!(WarnCommand);
+desc_localizations!(warn_description);
 
-impl KickCommand {
+impl WarnCommand {
     fn default_permissions() -> Permissions {
         Permissions::KICK_MEMBERS
     }
@@ -68,7 +68,7 @@ impl KickCommand {
         let user = self.user.resolved;
         let member = match self.user.member {
             Some(member) => member,
-            None => return Ok(embed::kick::not_member(user.name, lang)),
+            None => return Ok(embed::warn::not_member(user.name, lang)),
         };
         // Fetch the author and the bot permissions.
         let (author_permissions, member_permissions, bot_permissions) =
@@ -85,7 +85,7 @@ impl KickCommand {
         }
 
         // Check if the role hierarchy allow the author and the bot to perform
-        // the kick.
+        // the warn.
         if let Some(value) = check_command_permissions(
             member_permissions,
             author_permissions,
@@ -101,12 +101,12 @@ impl KickCommand {
         match self.reason {
             Some(_reason) => Ok(InteractionResponse::EphemeralDeferredMessage),
             None => {
-                KickCommand::reason_modal(interaction.id, user, enforce_reason, state, lang).await
+                WarnCommand::reason_modal(interaction.id, user, enforce_reason, state, lang).await
             }
         }
     }
 
-    /// Modal that asks the user to enter a reason for the kick.
+    /// Modal that asks the user to enter a reason for the warn.
     ///
     /// This modal is only shown if the user has not specified a reason in the
     /// initial command.
@@ -149,7 +149,7 @@ impl KickCommand {
         let custom_id = CustomId::new("sanction", interaction_id.to_string());
         let pending = PendingSanction {
             interaction_id,
-            kind: ModlogType::Kick,
+            kind: ModlogType::Warn,
             user,
         };
 
@@ -157,7 +157,7 @@ impl KickCommand {
 
         Ok(InteractionResponse::Modal {
             custom_id: custom_id.to_string(),
-            title: lang.modal_kick_title(username),
+            title: lang.modal_warn_title(username),
             components,
         })
     }

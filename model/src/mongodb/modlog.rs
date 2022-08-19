@@ -52,6 +52,9 @@ impl Modlog {
 #[serde(rename_all = "lowercase")]
 pub enum ModlogType {
     Kick,
+    Ban,
+    Mute,
+    Warn,
 }
 
 /// User model stored with modlog information.
