@@ -10,7 +10,7 @@
 
 use super::util::{
     check_command_permissions, check_user_permissions, get_modal_requirements, get_permissions,
-    init_command,
+    get_command_data,
 };
 use raidprotect_model::{cache::model::interaction::PendingSanction, mongodb::modlog::ModlogType};
 use twilight_interactions::command::{CommandModel, CreateCommand, ResolvedUser};
@@ -64,7 +64,7 @@ impl WarnCommand {
         interaction: Interaction,
         state: &ClusterState,
     ) -> Result<InteractionResponse, anyhow::Error> {
-        let (guild_id, author_id, lang) = init_command(&interaction).await?;
+        let (guild_id, author_id, lang) = get_command_data(&interaction).await?;
         let user = self.user.resolved;
         let member = match self.user.member {
             Some(member) => member,

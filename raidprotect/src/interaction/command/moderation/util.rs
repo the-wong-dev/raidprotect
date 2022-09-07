@@ -19,7 +19,8 @@ use twilight_model::{
     application::interaction::Interaction, guild::Permissions, id::Id, user::User,
 };
 
-pub async fn init_command(
+/* Get basic data about command */
+pub async fn get_command_data(
     interaction: &Interaction,
 ) -> Result<
     (
