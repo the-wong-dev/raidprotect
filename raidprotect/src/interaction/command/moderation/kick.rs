@@ -12,7 +12,7 @@ use super::util::{
     check_command_permissions, check_user_permissions, get_modal_requirements, get_permissions,
     init_command,
 };
-use raidprotect_model::{cache::model::interaction::PendingSanction, mongodb::modlog::ModlogType};
+use raidprotect_model::{cache::model::interaction::PendingSanction, database::model, mongodb::modlog::ModlogType};
 use twilight_interactions::command::{CommandModel, CreateCommand, ResolvedUser};
 use twilight_model::{
     application::{
